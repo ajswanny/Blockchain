@@ -327,8 +327,5 @@ def consensus():
     return jsonify(response), 200
 
 
-
-def __run__(port):
+def run(port):
     app.run(host='0.0.0.0', port=port)
-
-__run__(5000)
