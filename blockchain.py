@@ -236,6 +236,12 @@ def new_transaction():
 
 @app.route('/mine', methods=['GET'])
 def mine():
+    """
+    Mines a new block in the chain.
+
+    :return: The updated chain and its new block.
+    """
+
     # We run the proof of work algorithm to get the next proof...
     last_block = blockchain.last_block
     last_proof = last_block['proof']
@@ -264,5 +270,65 @@ def mine():
     return jsonify(response), 200
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+@app.route('/nodes/register', methods=['POST'])
+def register_nodes():
+    """
+    Registers a list of new nodes.
+
+    :return: The new listing of nodes or an error message indicating that an invalid list of nodes was submitted.
+    """
+
+    # Get the Blockchain data.
+    values = request.get_json()
+
+    # Get a list of the nodes on the main network.
+    nodes = values.get('nodes')
+
+    # Indicate possible error.
+    if nodes is None:
+        return "Error: Please supply a valid list of nodes", 400
+
+    # Register the new nodes.
+    for node in nodes:
+        blockchain.register_node(node)
+
+    response = {
+        'message': 'New nodes have been added',
+        'total_nodes': list(blockchain.nodes),
+    }
+
+    return jsonify(response), 201
+
+
+@app.route('/nodes/resolve', methods=['GET'])
+def consensus():
+    """
+    Implements the consensus algorithm, updating the main Blockchain if it was found to have been updated.
+
+    :return: The new or current Blockchain.
+    """
+
+    # Attempt to resolve any conflicts.
+    replaced = blockchain.resolve_conflicts()
+
+    # Return the new Blockchain if the old one was replaced.
+    if replaced:
+        response = {
+            'message': 'Our chain was replaced',
+            'new_chain': blockchain.chain
+        }
+
+    else:
+        response = {
+            'message': 'The main chain is authoritative',
+            'chain': blockchain.chain
+        }
+
+    return jsonify(response), 200
+
+
+
+def __run__(port):
+    app.run(host='0.0.0.0', port=port)
+
+__run__(5000)
